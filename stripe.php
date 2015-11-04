@@ -119,7 +119,6 @@ function stripe_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL) {
   return _stripe_civix_civicrm_upgrade($op, $queue);
 }
 
-
 /**
  * Implementation of hook_civicrm_managed().
  *
