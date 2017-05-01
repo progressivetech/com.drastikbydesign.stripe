@@ -378,6 +378,29 @@ class CRM_Core_Payment_Stripe extends CRM_Core_Payment {
       if (stripe_get_submission_method() != 'php') {
         CRM_Core_Error::fatal(ts('Stripe.js token was not passed!  Report this message to the site administrator.'));
       }
+      else {
+        // If for some reason you cannot use Stripe.js and you are aware of PCI Compliance issues,
+        // here is the alternative to Stripe.js:
+
+        // Get Cardholder's full name.
+        $cc_name = $params['first_name'] . " ";
+        if (strlen($params['middle_name']) > 0) {
+          $cc_name .= $params['middle_name'] . " ";
+        }
+        $cc_name .= $params['last_name'];
+
+        // Prepare Card details in advance to use for new Stripe Customer object if we need.
+        $card_details = array(
+          'number' => $params['credit_card_number'],
+          'exp_month' => $params['month'],
+          'exp_year' => $params['year'],
+          'cvc' => $params['cvv2'],
+          'name' => $cc_name,
+          'address_line1' => $params['street_address'],
+          'address_state' => $params['state_province'],
+          'address_zip' => $params['postal_code'],
+        );
+      }
     }
 
     // Check for existing customer, create new otherwise.
@@ -430,30 +453,6 @@ class CRM_Core_Payment_Stripe extends CRM_Core_Payment {
     $customer_query = CRM_Core_DAO::singleValueQuery("SELECT id
       FROM civicrm_stripe_customers
       WHERE email = %1 AND is_live = '{$this->_islive}' AND processor_id = %2", $query_params);
-
-    if (stripe_get_submission_method() == 'php') {
-      // If for some reason you cannot use Stripe.js and you are aware of PCI Compliance issues,
-      // here is the alternative to Stripe.js:
-
-      // Get Cardholder's full name.
-      $cc_name = $params['first_name'] . " ";
-      if (strlen($params['middle_name']) > 0) {
-        $cc_name .= $params['middle_name'] . " ";
-      }
-      $cc_name .= $params['last_name'];
-
-      // Prepare Card details in advance to use for new Stripe Customer object if we need.
-      $card_details = array(
-        'number' => $params['credit_card_number'],
-        'exp_month' => $params['month'],
-        'exp_year' => $params['year'],
-        'cvc' => $params['cvv2'],
-        'name' => $cc_name,
-        'address_line1' => $params['street_address'],
-        'address_state' => $params['state_province'],
-        'address_zip' => $params['postal_code'],
-      );
-    }
 
     // drastik - Uncomment this for Drupal debugging to dblog.
     /*
