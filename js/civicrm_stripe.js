@@ -152,13 +152,14 @@
       if ($('#priceset').length) {
         additionalParticipants = cj("#additional_participants").val();
         // The currentTotal is already being calculated in Form/Contribution/Main.tpl.
-        if(typeof currentTotal !== 'undefined') {
-          if (currentTotal == 0 && !additionalParticipants) {
-            // This is also hit when "Going back", but we already have stripe_token.
-            debugging('ozlkf');
-            // This should not happen on Confirm Contribution, but seems to on 4.6 for some reason.
-            //return true;
-          }
+        if(typeof currentTotal === 'undefined' && $('#pricevalue').length) {
+          currentTotal = $('#pricevalue').data('raw-total');
+        }
+        if (currentTotal == 0 && !additionalParticipants) {
+          // This is also hit when "Going back", but we already have stripe_token.
+          debugging('ozlkf');
+          // This should not happen on Confirm Contribution, but seems to on 4.6 for some reason.
+          return true;
         }
       }
 
