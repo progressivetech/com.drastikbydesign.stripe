@@ -444,10 +444,10 @@ class CRM_Core_Payment_StripeIPN extends CRM_Core_Payment_BaseIPN {
   function setInfo() {
 
     $this->event_type = $this->retrieve('event_type', 'String');
-    $this->customer_id = $this->retrieve('customer_id', 'String');
     $this->test_mode = $this->retrieve('test_mode', 'Integer');
 
     $abort = FALSE;
+    $this->customer_id = $this->retrieve('customer_id', 'String');
     $this->subscription_id = $this->retrieve('subscription_id', 'String', $abort);
     $this->invoice_id = $this->retrieve('invoice_id', 'String', $abort);
     $this->receive_date = $this->retrieve('receive_date', 'String', $abort);
