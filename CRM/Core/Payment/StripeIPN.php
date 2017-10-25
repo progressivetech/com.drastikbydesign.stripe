@@ -488,85 +488,89 @@ class CRM_Core_Payment_StripeIPN extends CRM_Core_Payment_BaseIPN {
 
     $this->net_amount = $this->amount - $this->fee;
 
-    // Get info related to recurring contributions.
-    $sql = "SELECT contribution_recur_id,
-      financial_type_id, payment_instrument_id, contact_id
-      FROM civicrm_stripe_subscriptions s JOIN civicrm_contribution_recur r
-      ON s.contribution_recur_id = r.id
-      WHERE subscription_id = %1
-      AND s.processor_id = %2";
-    $query_params = array(
-      1 => array($this->subscription_id, 'String'),
-      2 => array($this->ppid, 'Integer'),
-    );
-    $dao = CRM_Core_DAO::executeQuery($sql, $query_params);
-    $dao->fetch();
-    if ($dao->N == 0 && $this->event_type == 'invoice.payment_succeeded') {
-      // Let's try a little harder - we might have not have properly recorded
-      // the subscription id when this recurring contribution was created.
+    // Additional processing of values is only relevant if there is a
+    // subscription id.
+    if ($this->subscription_id) {
+      // Get info related to recurring contributions.
       $sql = "SELECT contribution_recur_id,
         financial_type_id, payment_instrument_id, contact_id
         FROM civicrm_stripe_subscriptions s JOIN civicrm_contribution_recur r
         ON s.contribution_recur_id = r.id
-        WHERE customer_id = %1
+        WHERE subscription_id = %1
         AND s.processor_id = %2";
       $query_params = array(
-        1 => array($this->customer_id, 'String'),
+        1 => array($this->subscription_id, 'String'),
         2 => array($this->ppid, 'Integer'),
       );
-      $extra_dao = CRM_Core_DAO::executeQuery($sql, $query_params);
-      $extra_dao->fetch();
-      if ($extra_dao->N == 1) {
-        // We just found one subscription, so it must be the right one
-        // (if we find more than one subscription we can't be sure).
-        $dao = $extra_dao;
+      $dao = CRM_Core_DAO::executeQuery($sql, $query_params);
+      $dao->fetch();
+      if ($dao->N == 0 && $this->event_type == 'invoice.payment_succeeded') {
+        // Let's try a little harder - we might have not have properly recorded
+        // the subscription id when this recurring contribution was created.
+        $sql = "SELECT contribution_recur_id,
+          financial_type_id, payment_instrument_id, contact_id
+          FROM civicrm_stripe_subscriptions s JOIN civicrm_contribution_recur r
+          ON s.contribution_recur_id = r.id
+          WHERE customer_id = %1
+          AND s.processor_id = %2";
+        $query_params = array(
+          1 => array($this->customer_id, 'String'),
+          2 => array($this->ppid, 'Integer'),
+        );
+        $extra_dao = CRM_Core_DAO::executeQuery($sql, $query_params);
+        $extra_dao->fetch();
+        if ($extra_dao->N == 1) {
+          // We just found one subscription, so it must be the right one
+          // (if we find more than one subscription we can't be sure).
+          $dao = $extra_dao;
+        }
+        else {
+          // This is an unrecoverable error - without a contribution_recur record
+          // there is nothing we can do with an invoice.payment_succeeded
+          // event.
+          throw new CRM_Core_Exception('I cannot find contribution_recur record for subscription: ' . $this->subscription_id);
+        }
       }
-      else {
-        // This is an unrecoverable error - without a contribution_recur record
-        // there is nothing we can do with an invoice.payment_succeeded
-        // event.
-        throw new CRM_Core_Exception('I cannot find contribution_recur record for subscription: ' . $this->subscription_id);
-      }
-    }
-    if ($dao->N == 1) {
-      $this->contribution_recur_id = $dao->contribution_recur_id;
-      $this->financial_type_id = $dao->financial_type_id;
-      $this->payment_instrument_id = $dao->payment_instrument_id;
-      $this->contact_id = $dao->contact_id;
+      if ($dao->N == 1) {
+        $this->contribution_recur_id = $dao->contribution_recur_id;
+        $this->financial_type_id = $dao->financial_type_id;
+        $this->payment_instrument_id = $dao->payment_instrument_id;
+        $this->contact_id = $dao->contact_id;
 
-      // Same approach as api repeattransaction. Find last contribution ascociated 
-      // with our recurring contribution.
-      $results = civicrm_api3('contribution', 'getsingle', array(
-       'return' => array('id', 'contribution_status_id', 'total_amount'),
-       'contribution_recur_id' => $this->contribution_recur_id,
-       'options' => array('limit' => 1, 'sort' => 'id DESC'),
-       'contribution_test' => $this->test_mode,
-      ));
-      $this->previous_contribution_id = $results['contribution_id'];
-      $this->previous_contribution_status_id = $results['contribution_status_id'];
-      $this->previous_contribution_total_amount = $results['total_amount'];
-
-      // Workaround for CRM-19945.
-      try {
-        $this->previous_completed_contribution_id = civicrm_api3('contribution', 'getvalue', array(
-          'return' => 'id',
-          'contribution_recur_id' => $this->contribution_recur_id,
-          'contribution_status_id' => array('IN' => array('Completed')),
-          'options' => array('limit' => 1, 'sort' => 'id DESC'),
-          'contribution_test' => $this->test_mode,
+        // Same approach as api repeattransaction. Find last contribution ascociated 
+        // with our recurring contribution.
+        $results = civicrm_api3('contribution', 'getsingle', array(
+         'return' => array('id', 'contribution_status_id', 'total_amount'),
+         'contribution_recur_id' => $this->contribution_recur_id,
+         'options' => array('limit' => 1, 'sort' => 'id DESC'),
+         'contribution_test' => $this->test_mode,
         ));
-      } catch (Exception $e) {
-        // This is fine....could only be a pending in the db.
-      }
+        $this->previous_contribution_id = $results['contribution_id'];
+        $this->previous_contribution_status_id = $results['contribution_status_id'];
+        $this->previous_contribution_total_amount = $results['total_amount'];
 
-      // Check for membership id.
-      $membership = civicrm_api3('Membership', 'get', array(
-        'contribution_recur_id' => $this->contribution_recur_id,
-      ));
-      if ($membership['count'] == 1) {
-        $this->membership_id = $membership['id'];
-      }
+        // Workaround for CRM-19945.
+        try {
+          $this->previous_completed_contribution_id = civicrm_api3('contribution', 'getvalue', array(
+            'return' => 'id',
+            'contribution_recur_id' => $this->contribution_recur_id,
+            'contribution_status_id' => array('IN' => array('Completed')),
+            'options' => array('limit' => 1, 'sort' => 'id DESC'),
+            'contribution_test' => $this->test_mode,
+          ));
+        } catch (Exception $e) {
+          // This is fine....could only be a pending in the db.
+        }
 
+        // Check for membership id.
+        $membership = civicrm_api3('Membership', 'get', array(
+          'contribution_recur_id' => $this->contribution_recur_id,
+        ));
+        if ($membership['count'] == 1) {
+          $this->membership_id = $membership['id'];
+        }
+
+      }
     }
   }
 }
