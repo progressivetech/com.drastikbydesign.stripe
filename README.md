@@ -67,8 +67,41 @@ OTHER CREDITS
 For bug fixes, new features, and documentiation, thanks to:
 rgburton, Swingline0, BorislavZlatanov, agh1, & jmcclelland
 
+API
+------------
+This extension comes with several APIs to help you troubleshoot problems. These can be run via /civicrm/api or via drush if you are using Drupal (drush cvapi Stripe.XXX).
+
+The api commands are:
+
+ * Listevents: Events are the notifications that Stripe sends to the Webhook. Listevents will list all notifications that have been sent. You can further restrict them with the following parameters:
+  * ppid - Use the given Payment Processor ID. By default, uses the saved, live Stripe payment processor and throws an error if there is more than one.
+  * type - Limit to the given Stripe events type. By default, show invoice.payment_succeeded. Change to 'all' to show all.
+  * output - What information to show. Defaults to 'brief' which provides a summary. Alternatively use raw to get the raw JSON returned by Stripe.
+  * limit - Limit number of results returned (100 is max, 10 is default).
+  * starting_after - Only return results after this event id. This can be used for paging purposes - if you want to retreive more than 100 results.
+ * Populatelog: If you are running a version of CiviCRM that supports the SystemLog - then this API call will populate your SystemLog with all of your past Stripe Events. You can safely re-run and not create duplicates. With a populated SystemLog - you can selectively replay events that may have caused errors the first time or otherwise not been properly recorded. Parameters:
+  * ppid - Use the given Payment Processor ID. By default, uses the saved, live Stripe payment processor and throws an error if there is more than one.
+ * Ipn: Replay a given Stripe Event. Parameters. This will always fetch the chosen Event from Stripe before replaying.
+  * id - The id from the SystemLog of the event to replay.
+  * evtid - The Event ID as provided by Stripe.
+  * ppid - Use the given Payment Processor ID. By default, uses the saved, live Stripe payment processor and throws an error if there is more than one.
+  * noreceipt - Set to 1 if you want to suppress the generation of receipts or set to 0 or leave out to send receipts normally.
+
 TESTING
 --------
+
+This extension comes with two PHP Unit tests:
+
+ * Ipn - This unit test ensures that a recurring contribution is properly updated after the event is received from Stripe and that it is properly canceled when cancelled via Stripe.
+ * Direct - This unit test ensures that a direct payment to Stripe is properly recorded in the database.
+
+Tests can be run most easily via an installation made through CiviCRM Buildkit (https://github.com/civicrm/civicrm-buildkit) by changing into the extension directory and running:
+
+    phpunit4 tests/phpunit/CRM/Stripe/IpnTest.php
+    phpunit4 tests/phpunit/CRM/Stripe/DirectTest.php
+
+The following manual tests should also be run:
+
 1. Test webform submission with payment and user-select, single processor.
 1. Test online contribution page with single processor, multi-processor (stripe default, stripe non-default).
 1. Test offline contribution page with single processor, multi-processor (stripe default, stripe non-default).
