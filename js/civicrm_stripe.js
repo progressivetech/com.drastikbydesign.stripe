@@ -64,7 +64,50 @@
     // /civicrm/contact/view/participant occurs when payproc is first loaded on event credit card payment
     if ((settings.url.match("/civicrm/payment/form?"))
        || (settings.url.match("/civicrm/contact/view/participant?"))) {
-      loadStripeBillingBlock();
+      // See if there is a payment processor selector on this form
+      // (e.g. an offline credit card contribution page).
+      if ($('#payment_processor_id').length > 0) {
+        // There is. Check if the selected payment processor is different
+        // from the one we think we should be using.
+        var ppid = $('#payment_processor_id').val();
+        if (ppid != $('#stripe-id').val()) {
+          debugging('payment processor changed to id: ' + ppid);
+          // It is! See if the new payment processor is also a Stripe
+          // Payment processor. First, find out what the stripe
+          // payment processor type id is (we don't want to update
+          // the stripe pub key with a value from another payment processor).
+          CRM.api3('PaymentProcessorType', 'getvalue', {
+            "sequential": 1,
+            "return": "id",
+            "name": "Stripe"
+          }).done(function(result) {
+            // Now, see if the new payment processor id is a stripe
+            // payment processor.
+            var stripe_pp_type_id = result['result'];
+            CRM.api3('PaymentProcessor', 'getvalue', {
+              "sequential": 1,
+              "return": "password",
+              "id": ppid,
+              "payment_processor_type_id": stripe_pp_type_id,
+            }).done(function(result) {
+              var pub_key = result['result'];
+              if (pub_key) {
+                // It is a stripe payment processor, so update the key.
+                debugging("Setting new stripe key to: " + pub_key);
+                $('#stripe-pub-key').val(pub_key);
+                // Now reload the billing block.
+                loadStripeBillingBlock();
+              }
+              else {
+                debugging("New payment processor is not Stripe");
+              }
+            });
+          });
+        }
+      }
+      else {
+        loadStripeBillingBlock();
+      }
     }
   });
 
