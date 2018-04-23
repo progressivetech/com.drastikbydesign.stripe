@@ -244,7 +244,10 @@
 
         $totalElement = $('#wf-crm-billing-total');
         if ($totalElement.length) {
-          if ($totalElement.data('data-amount') === '0') {
+          // Handle old and new jQuery conventions (https://api.jquery.com/data/#data-html5)
+          // The second form is the new form as of jQuery 1.4.3 (jQuery tries to convert string
+          // numbers to integers).
+          if ($totalElement.data('data-amount') === '0' || $totalElement.data('amount') === 0 ) {
             debugging('webform total is 0');
             return true;
           }
