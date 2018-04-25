@@ -140,7 +140,7 @@
       $form.data('submit-dont-process', 1);
     });
 
-    $submit.click( function() {
+    $submit.click( function(event) {
       // Take over the click function of the form.
       debugging('clearing submit-dont-process');
       $form.data('submit-dont-process', 0);
