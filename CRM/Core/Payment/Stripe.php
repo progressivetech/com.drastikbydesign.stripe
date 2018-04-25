@@ -389,6 +389,13 @@ class CRM_Core_Payment_Stripe extends CRM_Core_Payment {
    * @public
    */
   public function doDirectPayment(&$params) {
+    if (array_key_exists('credit_card_number', $params)) {
+      $cc = $params['credit_card_number'];
+      if (!empty($cc) && substr($cc, 0, 8) != '00000000') {
+        CRM_Core_Error::debug_log_message(ts('ALERT! Unmasked credit card received in back end. Please report this error to the site administrator.'));
+      }
+    }
+
     // Let a $0 transaction pass.
     if (empty($params['amount']) || $params['amount'] == 0) {
       return $params;
