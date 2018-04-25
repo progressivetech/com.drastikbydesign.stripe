@@ -143,8 +143,28 @@
     });
 
     $submit.click( function() {
+      // Take over the click function of the form.
       debugging('clearing submit-dont-process');
       $form.data('submit-dont-process', 0);
+
+      // Run through our own submit, that executes Stripe submission if
+      // appropriate for this submit.
+      var ret = submit(event);
+      if (ret) {
+        // True means it's not our form. We are bailing and not trying to
+        // process Stripe.
+        // Restore any onclickAction that was removed.
+        $form = getBillingForm();
+        $submit = getBillingSubmit();
+        $submit.attr('onclick', onclickAction);
+        $form.get(0).submit();
+        return true;
+      }
+      // Otherwise, this is a stripe submission - don't handle normally.
+      // The code for completing the submission is all managed in the
+      // stripe handler (stripeResponseHandler) which gets execute after
+      // stripe finishes.
+      return false;
     });
 
     // Add a keypress handler to set flag if enter is pressed
@@ -181,23 +201,6 @@
       $form.find("input#credit_card_number").val('');
       $form.find("input#cvv2").val('');
     }
-
-    // Intercept form submission.
-    $form.on('submit', function(event) {
-      var ret = submit(event);
-      if (ret) {
-        // True means it's not our form. We are bailing and not trying to
-        // process Stripe.
-        // Restore any onclickAction that was removed.
-        $form = getBillingForm();
-        $submit = getBillingSubmit();
-        $submit.attr('onclick', onclickAction);
-        $form.get(0).submit();
-        return true;
-      }
-      // Otherwise, this is a stripe submission - don't handle normally.
-      return false;
-    });
 
     function submit(event) {
       event.preventDefault();
