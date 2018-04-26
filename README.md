@@ -100,6 +100,8 @@ Tests can be run most easily via an installation made through CiviCRM Buildkit (
     phpunit4 tests/phpunit/CRM/Stripe/IpnTest.php
     phpunit4 tests/phpunit/CRM/Stripe/DirectTest.php
 
+In addition, see the test/katalon folder for instructions on running full web-browser based automation tests.
+
 #### The following manual tests should also be run:
 
 1. Test webform submission with payment and user-select, single processor.
