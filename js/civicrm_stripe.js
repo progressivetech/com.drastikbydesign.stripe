@@ -100,15 +100,12 @@
                 debugging("New payment processor is not Stripe, setting stripe-pub-key to null");
                 $('#stripe-pub-key').val(null);
               }
-              // Now reload the billing block.
               loadStripeBillingBlock();
             });
           });
         }
       }
-      else {
-        loadStripeBillingBlock();
-      }
+      loadStripeBillingBlock();
     }
   });
 
@@ -116,7 +113,9 @@
     var $stripePubKey = $('#stripe-pub-key');
     if ($stripePubKey.length) {
       if (!$().Stripe) {
+        debugging("Loading Stripe.");
         $.getScript('https://js.stripe.com/v2/', function () {
+          debugging("Registering stripe pub key with Stripe object: " + $('#stripe-pub-key').val());
           Stripe.setPublishableKey($('#stripe-pub-key').val());
         });
       }
@@ -128,6 +127,10 @@
       debugging('No billing form!');
       return;
     }
+    else {
+      debugging('Found billing form.');
+    }
+
     $submit = getBillingSubmit();
 
     // If another submit button on the form is pressed (eg. apply discount)
