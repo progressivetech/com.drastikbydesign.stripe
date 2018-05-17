@@ -22,21 +22,39 @@ Download and install extension via CiviCRM's "Manage Extensions" page.
 
 ## Webhook and Recurring Contributions
 
-**TODO: Replace with documentation for NEW CiviCRM standard method**
+Stripe can notify CiviCRM every time a recurring contribution is processed.
 
-The Webhook.php file is registered to the path of civicrm/stripe/webhook  
-You will have to make a Webhook rule in your Stripe.com account and enter this path for recurring charges to end!  
-For Drupal:  https://example.com/civicrm/stripe/webhook  
-For Joomla:  https://example.com/index.php/component/civicrm/?task=civicrm/stripe/webhook  
-For Wordpress:  https://example.com/?page=CiviCRM&q=civicrm/stripe/webhook  
+In order to take advantage of this feature, you must configure Stripe with the right "Webhook Endpoint".
 
-If you have multiple Stripe accounts on your site, you will need to specify the payment processor ID in the webhook URL.
-To find the ID, look at the URL when you are editing the payment processor in CiviCRM: it should include `id=XX`, where `XX` is your payment processor ID.
-Add a URL parameter of `ppid=XX` to the webhook URL.
-For example, for a payment processor ID of 3, use the following:
-For Drupal:  https://example.com/civicrm/stripe/webhook?ppid=3
-For Joomla:  https://example.com/index.php/component/civicrm/?task=civicrm/stripe/webhook&ppid=3
-For Wordpress:  https://example.com/?page=CiviCRM&q=civicrm/stripe/webhook&ppid=3
+You can find the location of this setting in your Stripe Dashboard by clicking the API menu item on the left, and then choose the Webhook tab.
+
+Then click Add Endpoint.
+
+Now, you need to figure out what your end point is.
+
+To figure out the "URL to be called" value, you need to check what ID is assigned to your payment processor.
+
+To determine the correct setting, go back to your CiviCRM screen and click `Administer -> System Settings -> Payment Processor`
+
+Click Edit next to the payment processor you are setting up.
+
+Then, check the Address bar. You should see something like the following:
+
+https://ptp.ourpowerbase.net/civicrm/admin/paymentProcessor?action=update&id=3&reset=1
+
+The end of the address contains id=3. That means that this Payment Processor id is 3.
+
+Therefore the call back address for your site will be:
+
+    civicrm/payment/ipn/3
+
+See below for the full address to add to the endpoint (replace NN with your actual ID number):
+
+* For Drupal:  https://example.com/civicrm/paymet/ipn/NN
+* For Joomla:  https://example.com/index.php/component/civicrm/?task=civicrm/payment/ipn/NN
+* For Wordpress:  https://example.com/?page=CiviCRM&q=civicrm/payment/ipn/NN
+
+Typically, you only need to configure the end point to send live transactions and you want it to send all events.
 
 ### Cancelling Recurring Contributions
 You can cancel a recurring contribution from the Stripe.com dashboard. Go to Customers and then to the specific customer.
