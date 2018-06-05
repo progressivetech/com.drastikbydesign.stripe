@@ -271,6 +271,14 @@
         }
       }
 
+      if (typeof calculateTotalFee == 'function') {
+        var totalFee = calculateTotalFee();
+        if (totalFee == '0') {
+          debugging("Total amount is 0");
+          return true;
+        }
+      }
+
       // If there's no credit card field, no use in continuing (probably wrong
       // context anyway)
       if (!$form.find('#credit_card_number').length) {
