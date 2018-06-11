@@ -271,6 +271,7 @@
         }
       }
 
+      // Don't submit via payment processor if total amount = 0
       if (typeof calculateTotalFee == 'function') {
         var totalFee = calculateTotalFee();
         if (totalFee == '0') {
